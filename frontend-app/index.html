@@ -1,0 +1,77 @@
+<!doctype html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LostFoundPK | Reunite with what you've lost</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#134E6F",
+              "primary-container": "#1A5F7A",
+              "on-primary": "#FFFFFF",
+              "on-primary-container": "#A8D4E6",
+              surface: "#F8FAFC",
+              "surface-container": "#F1F5F9",
+              "surface-container-low": "#F8FAFC",
+              "surface-container-lowest": "#FFFFFF",
+              "surface-container-high": "#E2E8F0",
+              "surface-container-low": "#F1F5F9",
+              "surface-variant": "#E2E8F0",
+              "on-surface": "#0F172A",
+              "on-surface-variant": "#64748B",
+              outline: "#94A3B8",
+              "outline-variant": "#E2E8F0",
+              secondary: "#64748B",
+              lost: "#D97706",
+              found: "#059669",
+            },
+            spacing: {
+              gutter: "1.5rem",
+              "stack-sm": "0.5rem",
+              "stack-md": "1rem",
+              "stack-lg": "2rem",
+              "container-max": "1200px",
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              "headline-xl": ["Inter", "sans-serif"],
+              "headline-lg": ["Inter", "sans-serif"],
+              "headline-md": ["Inter", "sans-serif"],
+              "body-lg": ["Inter", "sans-serif"],
+              "body-md": ["Inter", "sans-serif"],
+              "label-md": ["Inter", "sans-serif"],
+              caption: ["Inter", "sans-serif"],
+            },
+            fontSize: {
+              "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
+              "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600" }],
+              "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+              "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+              "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+              "label-md": ["14px", { lineHeight: "20px", fontWeight: "500" }],
+              caption: ["12px", { lineHeight: "16px", fontWeight: "400" }],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-surface text-on-surface font-sans antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
