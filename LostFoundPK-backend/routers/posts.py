@@ -8,6 +8,7 @@ from datetime import date as dt_date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from rapidfuzz import fuzz
 from bson import ObjectId
 
 from core.dependencies import get_current_user
@@ -34,7 +35,12 @@ def _to_response(doc: dict) -> PostResponse:
     status_code=status.HTTP_201_CREATED,
     summary="Create a new post (authenticated)",
 )
+
+
 async def create_post(payload: PostCreate, current_user=Depends(get_current_user)) -> PostResponse:
+    # After creating the post, find potential matches
+    # (the matching logic is handled by a helper defined later)
+    
     post_doc = payload.model_dump(by_alias=True)
     # Convert date to datetime at midnight for MongoDB compatibility
     if "date" in post_doc and isinstance(post_doc["date"], dt_date) and not isinstance(post_doc["date"], datetime):
@@ -45,6 +51,8 @@ async def create_post(payload: PostCreate, current_user=Depends(get_current_user
     post_doc["status"] = PostStatus.open
     result = await db_helper.db["posts"].insert_one(post_doc)
     created = await db_helper.db["posts"].find_one({"_id": result.inserted_id})
+    # Create matches against opposite type posts
+    await _create_matches_for_post(created)
     return _to_response(created)
 
 # ---------------------------------------------------------------------------
@@ -169,3 +177,36 @@ async def resolve_post(post_id: str, current_user=Depends(get_current_user)) -> 
     await db_helper.db["posts"].update_one({"_id": ObjectId(post_id)}, {"$set": {"status": PostStatus.resolved}})
     updated = await db_helper.db["posts"].find_one({"_id": ObjectId(post_id)})
     return _to_response(updated)
+
+# Helper to create matches for a newly created post
+async def _create_matches_for_post(post_doc: dict):
+    """Find and record matches for a newly created post.
+    Args:
+        post_doc: The newly inserted post document (includes _id).
+    """
+    opposite_type = "found" if post_doc["type"] == "lost" else "lost"
+    query = {
+        "type": opposite_type,
+        "category": post_doc["category"],
+        "city": post_doc["city"],
+    }
+    cursor = db_helper.db["posts"].find(query)
+    async for candidate in cursor:
+        # Compute similarity ratio (0-1)
+        score = fuzz.ratio(post_doc["description"], candidate["description"]) / 100.0
+        if score > 0.4:
+            if post_doc["type"] == "lost":
+                lost_id = post_doc["_id"]
+                found_id = candidate["_id"]
+            else:
+                lost_id = candidate["_id"]
+                found_id = post_doc["_id"]
+            existing = await db_helper.db["matches"].find_one({"lostPostId": lost_id, "foundPostId": found_id})
+            if not existing:
+                await db_helper.db["matches"].insert_one({
+                    "lostPostId": lost_id,
+                    "foundPostId": found_id,
+                    "score": score,
+                    "status": "pending",
+                    "createdAt": datetime.now(timezone.utc),
+                })
