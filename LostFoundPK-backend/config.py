@@ -1,6 +1,6 @@
 import json
 from typing import List, Union
-from pydantic import field_validator
+from pydantic import field_validator, Field, AliasChoices
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
+    MONGO_URI: str = Field(validation_alias=AliasChoices("MONGO_URI", "MONGODB_URI", "mongodb_uri", "MONGO_URL", "mongodb_url"))
+    MONGO_DB_NAME: str = "lostfound"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -28,5 +30,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()

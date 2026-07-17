@@ -1,12 +1,23 @@
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
+from database import connect_to_mongo, close_mongo_connection
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to MongoDB
+    await connect_to_mongo()
+    yield
+    # Shutdown: Close MongoDB connection
+    await close_mongo_connection()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Backend API for LostFoundPK project",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Set up CORS middleware
