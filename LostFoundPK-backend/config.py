@@ -2,6 +2,7 @@ import json
 from typing import List, Union
 from pydantic import field_validator, Field, AliasChoices
 from pydantic_settings import BaseSettings
+from pydantic import SecretStr
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "LostFoundPK API"
@@ -10,6 +11,11 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
     MONGO_URI: str = Field(validation_alias=AliasChoices("MONGO_URI", "MONGODB_URI", "mongodb_uri", "MONGO_URL", "mongodb_url"))
     MONGO_DB_NAME: str = "lostfound"
+
+    # JWT
+    JWT_SECRET_KEY: str = Field(..., description="Secret key for signing JWT tokens. Must be set in .env.")
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
