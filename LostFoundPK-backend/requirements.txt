@@ -9,3 +9,4 @@ python-jose[cryptography]>=3.3.0
 python-multipart>=0.0.7
 cloudinary>=1.45.0
 rapidfuzz>=3.0.0
+requests>=2.31.0

@@ -8,6 +8,8 @@ from datetime import date as dt_date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+import requests
+from config import settings
 from rapidfuzz import fuzz
 from bson import ObjectId
 
@@ -210,3 +212,44 @@ async def _create_matches_for_post(post_doc: dict):
                     "status": "pending",
                     "createdAt": datetime.now(timezone.utc),
                 })
+                # Notify both post owners via email
+                await _notify_match_owners(lost_id, found_id, score)
+
+
+# Helper to send email notifications for a new match
+async def _notify_match_owners(lost_post_id, found_post_id, score):
+    # Retrieve posts to get user IDs
+    lost_post = await db_helper.db["posts"].find_one({"_id": lost_post_id})
+    found_post = await db_helper.db["posts"].find_one({"_id": found_post_id})
+    if not lost_post or not found_post:
+        return
+    # Retrieve user emails
+    lost_user = await db_helper.db["users"].find_one({"_id": lost_post.get("userId")})
+    found_user = await db_helper.db["users"].find_one({"_id": found_post.get("userId")})
+    if not lost_user or not found_user:
+        return
+    lost_email = lost_user.get("email")
+    found_email = found_user.get("email")
+    # Build email content
+    subject = "New potential match for your post"
+    body = f"A new match (score: {score:.2f}) has been found between your posts. " \
+           f"Visit the platform to review the match."
+    # Send via SendGrid API
+    api_key = settings.SENDGRID_API_KEY
+    if not api_key:
+        return
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    for email in (lost_email, found_email):
+        payload = {
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": "no-reply@lostfoundpk.com"},
+            "subject": subject,
+            "content": [{"type": "text/plain", "value": body}],
+        }
+        try:
+            requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)
+        except Exception:
+            pass

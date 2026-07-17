@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
     MONGO_URI: str = Field(validation_alias=AliasChoices("MONGO_URI", "MONGODB_URI", "mongodb_uri", "MONGO_URL", "mongodb_url"))
     MONGO_DB_NAME: str = "lostfound"
+    SENDGRID_API_KEY: str = Field("", description="SendGrid API key for email notifications")
 
     # JWT
     JWT_SECRET_KEY: str = Field(..., description="Secret key for signing JWT tokens. Must be set in .env.")
