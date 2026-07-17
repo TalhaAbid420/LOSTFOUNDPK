@@ -4,7 +4,7 @@ routers/posts.py
 Endpoints for the `posts` collection.
 """
 
-from datetime import datetime, timezone
+from datetime import date as dt_date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -36,6 +36,9 @@ def _to_response(doc: dict) -> PostResponse:
 )
 async def create_post(payload: PostCreate, current_user=Depends(get_current_user)) -> PostResponse:
     post_doc = payload.model_dump(by_alias=True)
+    # Convert date to datetime at midnight for MongoDB compatibility
+    if "date" in post_doc and isinstance(post_doc["date"], dt_date) and not isinstance(post_doc["date"], datetime):
+        post_doc["date"] = datetime.combine(post_doc["date"], datetime.min.time(), tzinfo=timezone.utc)
     # Attach author reference and creation metadata
     post_doc["userId"] = ObjectId(current_user.id) if isinstance(current_user.id, str) else current_user.id
     post_doc["createdAt"] = datetime.now(timezone.utc)
@@ -70,9 +73,8 @@ async def list_posts(
         query["city"] = {"$regex": city, "$options": "i"}
     if date:
         try:
-            from datetime import datetime as dt
-            d = dt.fromisoformat(date).date()
-            query["date"] = d
+            d = dt_date.fromisoformat(date)
+            query["date"] = datetime.combine(d, datetime.min.time(), tzinfo=timezone.utc)
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid date format – use YYYY‑MM‑DD")
     if keyword:
@@ -125,6 +127,8 @@ async def replace_post(
         raise HTTPException(status_code=404, detail="Post not found")
     _assert_owner(current_user, doc)
     update_data = payload.model_dump(exclude_unset=True, by_alias=True)
+    if "date" in update_data and isinstance(update_data["date"], dt_date) and not isinstance(update_data["date"], datetime):
+        update_data["date"] = datetime.combine(update_data["date"], datetime.min.time(), tzinfo=timezone.utc)
     await db_helper.db["posts"].update_one({"_id": ObjectId(post_id)}, {"$set": update_data})
     updated = await db_helper.db["posts"].find_one({"_id": ObjectId(post_id)})
     return _to_response(updated)
