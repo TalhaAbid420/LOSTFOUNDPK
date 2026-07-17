@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import connect_to_mongo, close_mongo_connection
-from routers import auth
+from routers import auth, posts
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,9 +32,10 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth.router)
+app.include_router(posts.router)
 
 # Test/Health Check endpoint
-@app.get("/health", tags=["Health"])
+@app.get("/health", tags=["Health"]) 
 async def health_check():
     return {"status": "ok"}
 
