@@ -6,9 +6,10 @@ Endpoints for the `posts` collection.
 
 from datetime import date as dt_date, datetime, timezone
 from typing import List, Optional
+import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-import requests
+import httpx
 from config import settings
 from rapidfuzz import fuzz
 from bson import ObjectId
@@ -212,12 +213,15 @@ async def _create_matches_for_post(post_doc: dict):
                     "status": "pending",
                     "createdAt": datetime.now(timezone.utc),
                 })
-                # Notify both post owners via email
-                await _notify_match_owners(lost_id, found_id, score)
+                # Notify both post owners via email (non-blocking)
+                asyncio.create_task(_notify_match_owners(lost_id, found_id, score))
 
 
 # Helper to send email notifications for a new match
 async def _notify_match_owners(lost_post_id, found_post_id, score):
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+
     # Retrieve posts to get user IDs
     lost_post = await db_helper.db["posts"].find_one({"_id": lost_post_id})
     found_post = await db_helper.db["posts"].find_one({"_id": found_post_id})
@@ -230,26 +234,52 @@ async def _notify_match_owners(lost_post_id, found_post_id, score):
         return
     lost_email = lost_user.get("email")
     found_email = found_user.get("email")
-    # Build email content
-    subject = "New potential match for your post"
-    body = f"A new match (score: {score:.2f}) has been found between your posts. " \
-           f"Visit the platform to review the match."
+
     # Send via SendGrid API
     api_key = settings.SENDGRID_API_KEY
     if not api_key:
+        logger.warning("SENDGRID_API_KEY not set – skipping email notifications")
         return
+
+    sender = settings.EMAIL_FROM
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    for email in (lost_email, found_email):
+
+    lost_category = lost_post.get("category", "item")
+    found_category = found_post.get("category", "item")
+
+    for email, role in ((lost_email, "lost"), (found_email, "found")):
+        if not email:
+            continue
+        subject = f"LostFoundPK: Potential match found for your {lost_category if role == 'lost' else found_category} report"
+        body = (
+            f"Hi {lost_user.get('name', '') if role == 'lost' else found_user.get('name', '')},\n\n"
+            f"A new potential match (confidence: {score:.0%}) has been found!\n\n"
+            f"• Your report type: {role.title()}\n"
+            f"• Category: {lost_category if role == 'lost' else found_category}\n\n"
+            f"Log in to LostFoundPK to review the match and confirm if it's your item.\n\n"
+            f"Stay safe,\n"
+            f"LostFoundPK Team"
+        )
         payload = {
             "personalizations": [{"to": [{"email": email}]}],
-            "from": {"email": "no-reply@lostfoundpk.com"},
+            "from": {"email": sender, "name": "LostFoundPK"},
             "subject": subject,
             "content": [{"type": "text/plain", "value": body}],
         }
         try:
-            requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)
-        except Exception:
-            pass
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    json=payload,
+                    headers=headers,
+                    timeout=10,
+                )
+                if resp.status_code not in (200, 202):
+                    logger.warning(f"SendGrid returned {resp.status_code} for {email}: {resp.text}")
+                else:
+                    logger.info(f"Email notification sent to {email}")
+        except Exception as exc:
+            logger.error(f"Failed to send email to {email}: {exc}")
