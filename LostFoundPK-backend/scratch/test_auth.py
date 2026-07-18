@@ -42,7 +42,7 @@ resp = httpx.post(f"{BASE_URL}/auth/login", data=login_data)
 if resp.status_code != 200:
     print("[!] Login failed", resp.status_code, resp.text)
     sys.exit(1)
- token = resp.json().get("access_token")
+token = resp.json().get("access_token")
 if not token:
     print("[!] No token returned")
     sys.exit(1)
