@@ -24,7 +24,8 @@ export default function ForgotPassword() {
     }
 
     setStatus('submitting');
-    // TODO: replace with real API call
+    // TODO: Add POST /auth/forgot-password endpoint to backend, then replace with:
+    // await authFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
     setTimeout(() => setStatus('sent'), 1000);
   };
 

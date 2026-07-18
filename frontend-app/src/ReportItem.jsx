@@ -90,6 +90,12 @@ export default function ReportItem() {
       return;
     }
 
+    if (!formData.description || formData.description.trim().length < 10) {
+      setErrorMsg('Description must be at least 10 characters long.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (reportType === 'found' && !file) {
       setErrorMsg('Visual evidence (Photo) is required for Found items.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -99,13 +105,28 @@ export default function ReportItem() {
     setSubmitStatus('submitting');
 
     try {
+      let photoURL = null;
+
+      // Upload photo first if provided
+      if (file) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        const uploadResult = await authFetch('/upload/', {
+          method: 'POST',
+          body: formDataUpload,
+          headers: {},
+        });
+        photoURL = uploadResult.url;
+      }
+
       // Build the payload matching the backend PostCreate schema
       const payload = {
-        type: reportType,           // "lost" | "found"
-        category: selectedCategory, // "CNIC" | "Wallet" | "Phone" | "Pet" | "Other"
-        description: formData.description,
+        type: reportType,
+        category: selectedCategory,
+        description: formData.description.trim(),
         city: formData.city,
-        date: formData.date,        // ISO date string "YYYY-MM-DD"
+        date: formData.date,
+        ...(photoURL && { photoURL }),
       };
 
       await authFetch('/posts/', {

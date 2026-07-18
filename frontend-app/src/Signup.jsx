@@ -330,30 +330,7 @@ export default function Signup() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-7">
-            <div className="h-px flex-1 bg-outline-variant" />
-            <span className="text-xs uppercase tracking-wide text-outline">or continue with</span>
-            <div className="h-px flex-1 bg-outline-variant" />
-          </div>
 
-          {/* Social buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-outline-variant text-on-surface font-medium hover:bg-surface-container-lowest hover:border-[#10B981]/50 transition-colors"
-            >
-              <MaterialIcon name="mail" className="text-[18px]" />
-              Google
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-outline-variant text-on-surface font-medium hover:bg-surface-container-lowest hover:border-[#10B981]/50 transition-colors"
-            >
-              <MaterialIcon name="smartphone" className="text-[18px]" />
-              Phone
-            </button>
-          </div>
         </div>
       </div>
     </div>

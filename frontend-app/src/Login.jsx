@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { setItem } from './utils/localStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -66,8 +67,8 @@ export default function Login() {
         return;
       }
 
-      // Store JWT in localStorage for use on protected routes
-      localStorage.setItem('authToken', data.access_token);
+      // Store JWT safely
+      setItem('authToken', data.access_token);
 
       // Fetch user profile so Dashboard can show name/email and filter posts
       try {
@@ -76,7 +77,7 @@ export default function Login() {
         });
         if (meRes.ok) {
           const meData = await meRes.json();
-          localStorage.setItem('authUser', JSON.stringify({
+          setItem('authUser', JSON.stringify({
             id: meData._id || meData.id,
             name: meData.name,
             email: meData.email,

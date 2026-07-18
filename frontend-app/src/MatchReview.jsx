@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { authFetch } from './api';
 
 
@@ -82,7 +82,6 @@ function ComparisonCard({ post, accentIcon, accentLabel, accentColor, highlight 
 
 export default function MatchReview() {
   const { id } = useParams(); // Our post's ID
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -163,7 +162,7 @@ export default function MatchReview() {
     if (!matchRecord) return;
     setStatus('confirming');
     try {
-      await authFetch(`/matches/${matchRecord.id}/confirm`, {
+      await authFetch(`/matches/${matchRecord._id}/confirm`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'confirmed' }),
       });
@@ -180,7 +179,7 @@ export default function MatchReview() {
   const finalizeReject = async () => {
     if (!matchRecord) return;
     try {
-      await authFetch(`/matches/${matchRecord.id}/confirm`, {
+      await authFetch(`/matches/${matchRecord._id}/confirm`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'dismissed' }),
       });

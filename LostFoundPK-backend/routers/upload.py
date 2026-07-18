@@ -21,7 +21,7 @@ cloudinary.config(
 )
 
 @router.post("/", status_code=status.HTTP_201_CREATED, summary="Upload an image to Cloudinary")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), current_user=Depends(get_current_user)):
     # Validate that the uploaded file is an image
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files are allowed.")

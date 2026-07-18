@@ -23,6 +23,7 @@ export default function ItemDetails() {
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [contactStatus, setContactStatus] = useState('idle');
+  const [similarItems, setSimilarItems] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -30,7 +31,6 @@ export default function ItemDetails() {
       setNotFound(false);
       try {
         const data = await authFetch(`/posts/${id}`);
-        // Map backend response to what the JSX expects
         const iconMap = ICON_MAP;
         setItem({
           id: data._id,
@@ -53,6 +53,27 @@ export default function ItemDetails() {
             reportsMade: 1,
           },
         });
+
+        // Fetch similar items (same category, excluding current post)
+        try {
+          const params = new URLSearchParams({ category: data.category, limit: '4' });
+          const allPosts = await authFetch(`/posts/?${params.toString()}`);
+          const mapped = allPosts
+            .filter((p) => p._id !== data._id)
+            .slice(0, 3)
+            .map((p) => ({
+              id: p._id,
+              type: p.type,
+              title: `${p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : ''} - ${p.category}`,
+              location: p.city,
+              images: p.photoURL ? [p.photoURL] : [
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(p.category)}&background=E2E8F0&color=64748B&size=400`
+              ],
+            }));
+          setSimilarItems(mapped);
+        } catch {
+          // Non-fatal: similar items section will just be empty
+        }
       } catch (err) {
         if (err.status === 404) setNotFound(true);
       } finally {
@@ -179,7 +200,7 @@ export default function ItemDetails() {
                     <span className="material-symbols-outlined text-[18px]">location_on</span>
                     <span className="text-xs font-medium">Location</span>
                   </div>
-                  <p className="text-sm font-semibold text-on-surface">{item.location}</p>
+                  <p className="text-sm font-semibold text-on-surface">{item.city}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 text-on-surface-variant mb-1">

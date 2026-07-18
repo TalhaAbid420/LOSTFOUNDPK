@@ -4,11 +4,11 @@ import { authFetch } from './api';
 
 const CATEGORIES = [
   { id: 'All', label: 'All Categories', icon: 'apps' },
-  { id: 'Electronics', label: 'Electronics', icon: 'phone_iphone' },
-  { id: 'Documents', label: 'Documents', icon: 'description' },
-  { id: 'Wallets', label: 'Wallets', icon: 'wallet' },
-  { id: 'Keys', label: 'Keys', icon: 'vpn_key' },
-  { id: 'Pets', label: 'Pets', icon: 'pets' },
+  { id: 'CNIC', label: 'CNIC', icon: 'badge' },
+  { id: 'Wallet', label: 'Wallet', icon: 'account_balance_wallet' },
+  { id: 'Phone', label: 'Phone', icon: 'smartphone' },
+  { id: 'Pet', label: 'Pet', icon: 'pets' },
+  { id: 'Other', label: 'Other', icon: 'more_horiz' },
 ];
 
 const CITIES = ['All Cities', 'Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Peshawar', 'Quetta'];

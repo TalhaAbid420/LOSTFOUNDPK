@@ -33,6 +33,7 @@ app.add_middleware(
 # Routers
 app.include_router(auth.router)
 app.include_router(posts.router)
+app.include_router(upload.router)
 app.include_router(matches.router)
 
 # Test/Health Check endpoint

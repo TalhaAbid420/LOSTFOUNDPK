@@ -11,6 +11,7 @@
  *   // Authenticated request (token injected automatically)
  *   const res = await authFetch('/posts/', { method: 'POST', body: JSON.stringify(data) });
  */
+import { getItem, removeItem } from './utils/localStorage';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -19,12 +20,12 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 // ---------------------------------------------------------------------------
 
 export function getToken() {
-  return localStorage.getItem('authToken');
+  return getItem('authToken');
 }
 
 export function getUser() {
   try {
-    const raw = localStorage.getItem('authUser');
+    const raw = getItem('authUser');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -32,8 +33,8 @@ export function getUser() {
 }
 
 export function removeAuth() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('authUser');
+  removeItem('authToken');
+  removeItem('authUser');
 }
 
 // ---------------------------------------------------------------------------

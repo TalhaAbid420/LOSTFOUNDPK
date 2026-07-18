@@ -1,6 +1,7 @@
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import settings
+import certifi
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -14,7 +15,7 @@ db_helper = DatabaseHelper()
 async def connect_to_mongo():
     logger.info("Connecting to MongoDB...")
     try:
-        db_helper.client = AsyncIOMotorClient(settings.MONGO_URI)
+        db_helper.client = AsyncIOMotorClient(settings.MONGO_URI, tlsCAFile=certifi.where(), tlsAllowInvalidCertificates=True)
         db_helper.db = db_helper.client[settings.MONGO_DB_NAME]
         
         # Ping the database to verify connection
