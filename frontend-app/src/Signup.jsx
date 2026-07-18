@@ -1,5 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function MaterialIcon({ name, className = "" }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -23,6 +25,7 @@ function getPasswordStrength(password) {
 }
 
 export default function Signup() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ fullName: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -34,6 +37,7 @@ export default function Signup() {
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    if (errors.api) setErrors((prev) => ({ ...prev, api: undefined }));
   };
 
   const validate = () => {
@@ -54,16 +58,45 @@ export default function Signup() {
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setSubmitting(true);
-    // TODO: replace with real API call
-    setTimeout(() => {
+    setErrors({});
+    try {
+      // Backend expects: { name, email, password }
+      const res = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.fullName.trim(),
+          email: form.email.trim(),
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // 409 = duplicate email | 422 = validation error from Pydantic
+        const msg =
+          typeof data.detail === 'string'
+            ? data.detail
+            : Array.isArray(data.detail)
+            ? data.detail.map((d) => d.msg).join(', ')
+            : 'Signup failed. Please try again.';
+        setErrors({ api: msg });
+        return;
+      }
+
+      // Account created successfully — redirect to login
+      navigate('/login', { state: { registered: true } });
+    } catch {
+      setErrors({ api: 'Network error — is the backend running?' });
+    } finally {
       setSubmitting(false);
-      console.log("Account created:", form);
-    }, 1200);
+    }
   };
 
   return (
@@ -129,7 +162,15 @@ export default function Signup() {
 </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            {/* API / network error banner */}
+            {errors.api && (
+              <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2.5 text-sm font-medium">
+                <MaterialIcon name="error" className="text-lg text-red-500" />
+                {errors.api}
+              </div>
+            )}
             {/* Full Name */}
+
             <div>
               <label
                 htmlFor="fullName"

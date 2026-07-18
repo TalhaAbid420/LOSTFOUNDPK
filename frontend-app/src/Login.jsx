@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Icons ke liye MaterialIcon component
 function MaterialIcon({ name, className = "", filled = false }) {
@@ -18,30 +20,65 @@ function MaterialIcon({ name, className = "", filled = false }) {
 }
 
 export default function Login() {
-  const navigate = useNavigate(); // Page change karne ke liye
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Show success banner when redirected from Signup
+  const justRegistered = location.state?.registered === true;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Dummy Login Function
-  const handleLogin = (e) => {
-    e.preventDefault(); // Page ko reload hone se roke ga
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError('');
 
-    // Agar dono fields mein kuch likha hai, toh login success
     if (!email || !password) {
       setError('Please enter both email and password.');
       return;
     }
 
     setSubmitting(true);
-    // TODO: replace with real API call
-    setTimeout(() => {
+    try {
+      // FastAPI's OAuth2PasswordRequestForm expects form-encoded data
+      // with `username` (= email) and `password` fields.
+      const body = new URLSearchParams();
+      body.append('username', email.trim());
+      body.append('password', password);
+
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // 401 = wrong credentials
+        const msg =
+          typeof data.detail === 'string'
+            ? data.detail
+            : 'Login failed. Please try again.';
+        setError(msg);
+        return;
+      }
+
+      // Store JWT in localStorage for use on protected routes
+      localStorage.setItem('authToken', data.access_token);
+
+      // Redirect to dashboard (or wherever the user was trying to go)
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    } catch {
+      setError('Network error — is the backend running?');
+    } finally {
       setSubmitting(false);
-      navigate('/'); // Yahan tum '/' ki jagah '/report' bhi likh sakti ho agar direct report page par jana hai
-    }, 900);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-surface-container-low flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -70,6 +107,14 @@ export default function Login() {
           </div>
 
           <form className="space-y-6" onSubmit={handleLogin}>
+            {/* Success banner after signup redirect */}
+            {justRegistered && (
+              <div className="p-3.5 bg-green-50 border border-green-200 text-green-800 rounded-xl flex items-center gap-2.5 text-sm font-medium">
+                <MaterialIcon name="check_circle" className="text-lg text-green-600" />
+                Account created! Please sign in to continue.
+              </div>
+            )}
+
             {error && (
               <div className="p-3.5 bg-[#ffdad6] text-[#93000a] rounded-xl flex items-center gap-2.5 text-sm font-medium">
                 <MaterialIcon name="error" className="text-lg" />
