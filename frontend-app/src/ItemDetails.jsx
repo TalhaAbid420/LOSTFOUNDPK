@@ -1,193 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { authFetch } from './api';
 
-const ITEMS = {
-  1: {
-    id: 1,
-    title: 'Black Leather Wallet',
-    type: 'Lost',
-    category: 'Wallet',
-    categoryIcon: 'account_balance_wallet',
-    status: 'Active',
-    location: 'DHA Phase 6, Karachi',
-    date: 'Oct 24, 2023',
-    description:
-      "Black leather bifold wallet with a 'Levis' logo embossed on the front. Contains a CNIC, a couple of debit cards, and a small amount of cash. Last seen near the coffee shop on 26th street. Has some light scuffing on the left corner from daily use.",
-    images: [
-      'https://images.unsplash.com/photo-1627123424574-724758594e93?w=900&q=80',
-      'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=900&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Ahmed Raza',
-      avatar: 'https://ui-avatars.com/api/?name=Ahmed+Raza&background=003747&color=fff&size=160',
-      memberSince: 'January 2024',
-      trustLevel: 'High',
-      reportsMade: 12,
-    },
-  },
-  2: {
-    id: 2,
-    title: 'House Keys - Keychain',
-    type: 'Found',
-    category: 'Keys',
-    categoryIcon: 'vpn_key',
-    status: 'Active',
-    location: 'Dolmen Mall, Clifton',
-    date: 'Yesterday',
-    description:
-      'A set of three silver house keys attached to a colorful woven keychain. Found near the main entrance parking area of Dolmen Mall, Clifton. Handed in to the mall information desk contact, currently being safely held by the finder.',
-    images: [
-      'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=900&q=80',
-      'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Sana Malik',
-      avatar: 'https://ui-avatars.com/api/?name=Sana+Malik&background=10B981&color=fff&size=160',
-      memberSince: 'March 2023',
-      trustLevel: 'High',
-      reportsMade: 7,
-    },
-  },
-  3: {
-    id: 3,
-    title: 'Blue Sports Backpack',
-    type: 'Found',
-    category: 'Other',
-    categoryIcon: 'backpack',
-    status: 'Resolved',
-    location: 'Liberty Market, Lahore',
-    date: 'Feb 12, 2024',
-    resolvedOn: 'Feb 12, 2024',
-    description:
-      'Blue sports backpack with a laptop compartment, found abandoned on a bench near Liberty Market. Successfully reunited with its owner after verification.',
-    images: [
-      'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Bilal Khan',
-      avatar: 'https://ui-avatars.com/api/?name=Bilal+Khan&background=003747&color=fff&size=160',
-      memberSince: 'August 2023',
-      trustLevel: 'High',
-      reportsMade: 5,
-    },
-  },
-  4: {
-    id: 4,
-    title: 'Golden Retriever Puppy',
-    type: 'Lost',
-    category: 'Pet',
-    categoryIcon: 'pets',
-    status: 'Active',
-    location: 'Sector F-7, Islamabad',
-    date: 'Oct 24, 2023',
-    description:
-      "Lost in the Sector F-7 area. Responds to the name 'Max'. Wearing a blue collar with no tag. Very friendly and approaches strangers easily, so please approach calmly.",
-    images: [
-      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80',
-      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80&sat=-50',
-    ],
-    reporter: {
-      name: 'Fatima Sheikh',
-      avatar: 'https://ui-avatars.com/api/?name=Fatima+Sheikh&background=F59E0B&color=fff&size=160',
-      memberSince: 'May 2024',
-      trustLevel: 'High',
-      reportsMade: 2,
-    },
-  },
-  5: {
-    id: 5,
-    title: 'iPhone 13 - Midnight Blue',
-    type: 'Found',
-    category: 'Electronics',
-    categoryIcon: 'phone_iphone',
-    status: 'Active',
-    location: 'Liberty Market, Lahore',
-    date: 'Yesterday',
-    description:
-      'Found in a rickshaw near Liberty Market. Phone is locked with a passcode, screen is intact with no visible damage. Being held safely until the owner is verified.',
-    images: [
-      'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Usman Tariq',
-      avatar: 'https://ui-avatars.com/api/?name=Usman+Tariq&background=10B981&color=fff&size=160',
-      memberSince: 'November 2023',
-      trustLevel: 'High',
-      reportsMade: 9,
-    },
-  },
-  6: {
-    id: 6,
-    title: 'Honda City Car Keys',
-    type: 'Lost',
-    category: 'Keys',
-    categoryIcon: 'vpn_key',
-    status: 'Active',
-    location: 'Saddar, Rawalpindi',
-    date: '3 days ago',
-    description:
-      'Bunch of 3 keys including a Honda remote key fob, attached to a simple metal ring. Lost somewhere near the Saddar market area, possibly dropped while shopping.',
-    images: [
-      'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Hassan Iqbal',
-      avatar: 'https://ui-avatars.com/api/?name=Hassan+Iqbal&background=003747&color=fff&size=160',
-      memberSince: 'July 2023',
-      trustLevel: 'High',
-      reportsMade: 4,
-    },
-  },
-  7: {
-    id: 7,
-    title: 'CNIC - Muhammad Ali',
-    type: 'Found',
-    category: 'Documents',
-    categoryIcon: 'badge',
-    status: 'Active',
-    location: 'Liberty Market, Lahore',
-    date: '2 hours ago',
-    description:
-      'A Pakistani CNIC card found on the ground near Liberty Market. Handed over to the nearest information counter. Please contact with proof of identity to claim.',
-    images: [
-      'https://images.unsplash.com/photo-1621504450181-5d356f61d307?w=900&q=80',
-    ],
-    reporter: {
-      name: 'Zainab Qureshi',
-      avatar: 'https://ui-avatars.com/api/?name=Zainab+Qureshi&background=10B981&color=fff&size=160',
-      memberSince: 'February 2024',
-      trustLevel: 'High',
-      reportsMade: 6,
-    },
-  },
-};
+const ICON_MAP = { CNIC: 'badge', Wallet: 'account_balance_wallet', Phone: 'smartphone', Pet: 'pets', Other: 'more_horiz' };
 
 function TypeTag({ type }) {
-  const styles = type === 'Lost' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
-  const dot = type === 'Lost' ? 'bg-amber-600' : 'bg-emerald-600';
+  const cap = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
+  const styles = type === 'lost' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
+  const dot = type === 'lost' ? 'bg-amber-600' : 'bg-emerald-600';
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${styles}`}>
-      <span className={`w-2 h-2 rounded-full ${dot} ${type === 'Lost' ? 'animate-pulse' : ''}`}></span>
-      {type}
+      <span className={`w-2 h-2 rounded-full ${dot} ${type === 'lost' ? 'animate-pulse' : ''}`}></span>
+      {cap}
     </span>
   );
 }
 
 export default function ItemDetails() {
   const { id } = useParams();
-  const item = ITEMS[id] || ITEMS[1];
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [contactStatus, setContactStatus] = useState('idle');
 
-  const similarItems = Object.values(ITEMS).filter((i) => i.id !== item.id).slice(0, 3);
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setNotFound(false);
+      try {
+        const data = await authFetch(`/posts/${id}`);
+        // Map backend response to what the JSX expects
+        const iconMap = ICON_MAP;
+        setItem({
+          id: data._id,
+          title: `${data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : ''} - ${data.category}`,
+          type: data.type,
+          category: data.category,
+          categoryIcon: iconMap[data.category] || 'inventory_2',
+          status: data.status === 'resolved' ? 'Resolved' : 'Active',
+          city: data.city,
+          date: data.date ? new Date(data.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+          description: data.description,
+          images: data.photoURL ? [data.photoURL] : [
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(data.category)}&background=E2E8F0&color=64748B&size=600`
+          ],
+          reporter: {
+            name: 'Community Member',
+            avatar: `https://ui-avatars.com/api/?name=User&background=003747&color=fff&size=160`,
+            memberSince: new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            trustLevel: 'Verified',
+            reportsMade: 1,
+          },
+        });
+      } catch (err) {
+        if (err.status === 404) setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl animate-spin">progress_activity</span>
+          <p className="text-sm font-medium">Loading item details…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !item) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-outline text-6xl mb-4 block">search_off</span>
+          <h2 className="text-xl font-bold text-on-surface mb-2">Item not found</h2>
+          <p className="text-sm text-on-surface-variant mb-6">This post may have been removed or doesn't exist.</p>
+          <Link to="/browse" className="px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90">
+            Back to Browse
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const isResolved = item.status === 'Resolved';
-  const themeColor = item.type === 'Found' ? '#10B981' : '#F59E0B';
+  const themeColor = item.type === 'found' ? '#10B981' : '#F59E0B';
 
   const handleContact = () => {
     setContactStatus('sending');
     setTimeout(() => setContactStatus('sent'), 1200);
   };
+
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col font-sans">

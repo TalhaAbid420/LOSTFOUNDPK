@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom'; 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { authFetch } from './api';
 
 export default function ReportItem() {
-  const location = useLocation(); 
-  
-  // Safe logic: Agar state available hai toh type lo, warna 'Lost' set karo
-  const [reportType, setReportType] = useState((location.state && location.state.type) ? location.state.type : 'Lost');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Safe logic: Agar state available hai toh type lo, warna 'lost' set karo
+  const [reportType, setReportType] = useState(
+    (location.state && location.state.type) ? location.state.type.toLowerCase() : 'lost'
+  );
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [formData, setFormData] = useState({
@@ -41,7 +45,7 @@ export default function ReportItem() {
     if (formData.description.length > 10) score += 25; 
     if (formData.city) score += 15; 
     if (formData.date) score += 15; 
-    if (file || reportType === 'Lost') score += 25; 
+    if (file || reportType === 'lost') score += 25; 
     return score;
   };
 
@@ -76,7 +80,7 @@ export default function ReportItem() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     
@@ -86,27 +90,50 @@ export default function ReportItem() {
       return;
     }
 
-    if (reportType === 'Found' && !file) {
+    if (reportType === 'found' && !file) {
       setErrorMsg('Visual evidence (Photo) is required for Found items.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     setSubmitStatus('submitting');
-    setTimeout(() => {
+
+    try {
+      // Build the payload matching the backend PostCreate schema
+      const payload = {
+        type: reportType,           // "lost" | "found"
+        category: selectedCategory, // "CNIC" | "Wallet" | "Phone" | "Pet" | "Other"
+        description: formData.description,
+        city: formData.city,
+        date: formData.date,        // ISO date string "YYYY-MM-DD"
+      };
+
+      await authFetch('/posts/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
       setSubmitStatus('success');
+
+      // Redirect to dashboard after a brief success flash
       setTimeout(() => {
-        setSubmitStatus('idle');
-        setSelectedCategory('');
-        setFormData({ description: '', city: '', date: '' });
-        setFile(null);
-        setPreviewUrl(null);
-      }, 3000);
-    }, 1500);
+        navigate('/dashboard');
+      }, 1500);
+    } catch (err) {
+      setSubmitStatus('idle');
+      if (err.status === 401) {
+        navigate('/login', { state: { from: { pathname: '/report' } } });
+        return;
+      }
+      setErrorMsg(err.message || 'Failed to submit report. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
   };
 
-  const themeColor = reportType === 'Found' ? '#10B981' : '#F59E0B'; 
-  const themeBgHover = reportType === 'Found' ? 'hover:bg-[#059669]' : 'hover:brightness-110'; 
+  const themeColor = reportType === 'found' ? '#10B981' : '#F59E0B';
+  const themeBgHover = reportType === 'found' ? 'hover:bg-[#059669]' : 'hover:brightness-110';
+
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col font-sans">
@@ -135,17 +162,17 @@ export default function ReportItem() {
         <div className="mb-8 flex justify-center">
           <div className="flex bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant shadow-sm inline-flex">
             <button
-              onClick={() => { setReportType('Lost'); setErrorMsg(''); }}
+              onClick={() => { setReportType('lost'); setErrorMsg(''); }}
               className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${
-                reportType === 'Lost' ? 'bg-white text-[#F59E0B] shadow-md' : 'text-on-surface-variant hover:text-on-surface'
+                reportType === 'lost' ? 'bg-white text-[#F59E0B] shadow-md' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               Report Lost Item
             </button>
             <button
-              onClick={() => { setReportType('Found'); setErrorMsg(''); }}
+              onClick={() => { setReportType('found'); setErrorMsg(''); }}
               className={`px-8 py-3 rounded-xl text-sm font-bold transition-all ${
-                reportType === 'Found' ? 'bg-white text-[#10B981] shadow-md' : 'text-on-surface-variant hover:text-on-surface'
+                reportType === 'found' ? 'bg-white text-[#10B981] shadow-md' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               Report Found Item
@@ -155,10 +182,10 @@ export default function ReportItem() {
 
         <div className="mb-6">
           <h2 className="text-4xl font-bold text-primary mb-2">
-            Report a {reportType} Item
+            Report a {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Item
           </h2>
           <p className="text-base text-on-surface-variant">
-            {reportType === 'Found' 
+            {reportType === 'found'
               ? 'Help reunite someone with their belongings by providing accurate details.'
               : 'Your detailed report helps our community match found items more accurately. Please provide as much detail as possible.'}
           </p>
@@ -256,7 +283,7 @@ export default function ReportItem() {
 
           <section className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm">
             <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-4">
-              Step 3: Visual Evidence {reportType === 'Lost' && <span className="text-outline text-xs normal-case ml-2">(Optional)</span>}
+              Step 3: Visual Evidence {reportType === 'lost' && <span className="text-outline text-xs normal-case ml-2">(Optional)</span>}
             </h3>
             
             <div

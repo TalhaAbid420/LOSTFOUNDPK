@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { authFetch } from './api';
+
 
 function MaterialIcon({ name, className = '', filled = false }) {
   return (
@@ -12,40 +14,6 @@ function MaterialIcon({ name, className = '', filled = false }) {
   );
 }
 
-// Mock match data — in a real app this would come from your matching API
-const MATCHES = {
-  default: {
-    similarity: 88,
-    similarityNote: 'High probability match based on category, color, and location proximity.',
-    yourPost: {
-      type: 'Lost',
-      title: 'Black Leather Wallet',
-      category: 'Personal Accessories',
-      image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=800&q=80',
-      fields: [
-        { label: 'Location', value: 'Liberty Market, Lahore' },
-        { label: 'Date Lost', value: 'Oct 24, 2024' },
-      ],
-      description: 'Trifold black leather wallet with a small scratch on the front. Contains ID card and some cash.',
-    },
-    matchPost: {
-      type: 'Found',
-      title: 'Leather Wallet (Black)',
-      category: 'Personal Accessories',
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80',
-      fields: [
-        { label: 'Found Near', value: 'Ghalib Rd, near Liberty' },
-        { label: 'Date Found', value: 'Oct 25, 2024' },
-      ],
-      description: 'Found a black wallet near the main exit. Seems like genuine leather. Description matches trifold style.',
-      finder: {
-        name: 'Usman Tariq',
-        avatar: 'https://ui-avatars.com/api/?name=Usman+Tariq&background=10B981&color=fff&size=120',
-        trustLevel: 'High',
-      },
-    },
-  },
-};
 
 function ComparisonCard({ post, accentIcon, accentLabel, accentColor, highlight }) {
   const badgeStyles =
@@ -113,20 +81,154 @@ function ComparisonCard({ post, accentIcon, accentLabel, accentColor, highlight 
 }
 
 export default function MatchReview() {
-  const { id } = useParams();
+  const { id } = useParams(); // Our post's ID
   const navigate = useNavigate();
-  const match = MATCHES[id] || MATCHES.default;
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [matchRecord, setMatchRecord] = useState(null); // The match document
+  const [yourPost, setYourPost] = useState(null);
+  const [matchPost, setMatchPost] = useState(null);
   const [status, setStatus] = useState('reviewing'); // reviewing | confirming | confirmed | rejectConfirm | rejected
 
-  const handleConfirm = () => {
+  const mapPost = (post) => {
+    return {
+      type: post.type === 'lost' ? 'Lost' : 'Found',
+      title: `${post.type === 'lost' ? 'Lost' : 'Found'} ${post.category}`,
+      category: post.category,
+      image: post.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.category)}&background=E2E8F0&color=64748B&size=600`,
+      fields: [
+        { label: 'Location', value: post.city },
+        { label: `Date ${post.type === 'lost' ? 'Lost' : 'Found'}`, value: post.date ? new Date(post.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '' },
+      ],
+      description: post.description,
+    };
+  };
+
+  useEffect(() => {
+    async function loadMatchDetails() {
+      setLoading(true);
+      setError('');
+      try {
+        // Fetch matches associated with this post
+        const matchesList = await authFetch(`/matches/${id}`);
+        if (!Array.isArray(matchesList) || matchesList.length === 0) {
+          setError('No potential matches found for this post yet.');
+          return;
+        }
+
+        // Find the first pending match, or fallback to the first match
+        const activeMatch = matchesList.find((m) => m.status === 'pending') || matchesList[0];
+        setMatchRecord(activeMatch);
+
+        // Fetch details of both posts in the match
+        const [lostDetails, foundDetails] = await Promise.all([
+          authFetch(`/posts/${activeMatch.lostPostId}`),
+          authFetch(`/posts/${activeMatch.foundPostId}`),
+        ]);
+
+        // Decide which post is "yours" and which is the "matched" post
+        if (id === activeMatch.lostPostId) {
+          setYourPost(mapPost(lostDetails));
+          setMatchPost({
+            ...mapPost(foundDetails),
+            finder: {
+              name: 'Community Member',
+              avatar: `https://ui-avatars.com/api/?name=User&background=10B981&color=fff&size=120`,
+              trustLevel: 'High',
+            },
+          });
+        } else {
+          setYourPost(mapPost(foundDetails));
+          setMatchPost({
+            ...mapPost(lostDetails),
+            finder: {
+              name: 'Community Member',
+              avatar: `https://ui-avatars.com/api/?name=User&background=10B981&color=fff&size=120`,
+              trustLevel: 'High',
+            },
+          });
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to load match details.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadMatchDetails();
+  }, [id]);
+
+  const handleConfirm = async () => {
+    if (!matchRecord) return;
     setStatus('confirming');
-    setTimeout(() => setStatus('confirmed'), 1400);
+    try {
+      await authFetch(`/matches/${matchRecord.id}/confirm`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'confirmed' }),
+      });
+      setStatus('confirmed');
+    } catch (err) {
+      alert(err.message || 'Failed to confirm the match.');
+      setStatus('reviewing');
+    }
   };
 
   const handleReject = () => setStatus('rejectConfirm');
   const cancelReject = () => setStatus('reviewing');
-  const finalizeReject = () => setStatus('rejected');
+
+  const finalizeReject = async () => {
+    if (!matchRecord) return;
+    try {
+      await authFetch(`/matches/${matchRecord.id}/confirm`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'dismissed' }),
+      });
+      setStatus('rejected');
+    } catch (err) {
+      alert(err.message || 'Failed to dismiss the match.');
+      setStatus('reviewing');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-surface min-h-screen text-on-surface font-sans flex flex-col">
+        <MatchHeader />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 text-on-surface-variant">
+            <span className="material-symbols-outlined text-5xl animate-spin">progress_activity</span>
+            <p className="text-sm font-medium">Loading match details…</p>
+          </div>
+        </main>
+        <MatchFooter />
+      </div>
+    );
+  }
+
+  if (error || !yourPost || !matchPost) {
+    return (
+      <div className="bg-surface min-h-screen text-on-surface font-sans flex flex-col">
+        <MatchHeader />
+        <main className="flex-grow flex items-center justify-center px-4 py-20">
+          <div className="max-w-md w-full text-center">
+            <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-6">
+              <span className="material-symbols-outlined text-outline text-4xl">search_off</span>
+            </div>
+            <h2 className="text-2xl font-bold text-on-surface mb-2">No active matches</h2>
+            <p className="text-sm text-on-surface-variant mb-8">{error || 'There are no match details to review.'}</p>
+            <Link
+              to="/dashboard"
+              className="inline-block px-6 py-3 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
+            >
+              Return to Dashboard
+            </Link>
+          </div>
+        </main>
+        <MatchFooter />
+      </div>
+    );
+  }
 
   if (status === 'confirmed') {
     return (
@@ -139,7 +241,7 @@ export default function MatchReview() {
             </div>
             <h2 className="text-2xl font-bold text-on-surface mb-2">Match Confirmed!</h2>
             <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
-              Great news — {match.matchPost.finder?.name || 'the finder'} has been notified. A secure
+              Great news — {matchPost.finder?.name || 'the finder'} has been notified. A secure
               conversation has been opened so you can safely arrange the handover.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -190,6 +292,11 @@ export default function MatchReview() {
     );
   }
 
+  const similarityScore = matchRecord ? Math.round(matchRecord.score * 100) : 0;
+  const similarityNote = similarityScore > 70
+    ? 'High probability match based on category, description similarity and city proximity.'
+    : 'Moderate match based on matching category and description keyword overlaps.';
+
   return (
     <div className="bg-surface min-h-screen text-on-surface font-sans flex flex-col pb-24 md:pb-0">
       <MatchHeader />
@@ -212,27 +319,28 @@ export default function MatchReview() {
           />
           <div className="flex items-center gap-3 mb-2">
             <MaterialIcon name="analytics" className="text-emerald-700 text-2xl" filled />
-            <span className="text-xl md:text-2xl font-bold text-emerald-800">{match.similarity}% Description Similarity</span>
+            <span className="text-xl md:text-2xl font-bold text-emerald-800">{similarityScore}% Description Similarity</span>
           </div>
-          <p className="text-sm text-on-surface-variant text-center">{match.similarityNote}</p>
+          <p className="text-sm text-on-surface-variant text-center">{similarityNote}</p>
         </div>
 
         {/* Comparison grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ComparisonCard
-            post={match.yourPost}
+            post={yourPost}
             accentIcon="person_pin"
             accentLabel="Your Reported Post"
             accentColor="text-primary"
           />
           <ComparisonCard
-            post={match.matchPost}
+            post={matchPost}
             accentIcon="check_circle"
             accentLabel="Possible Match (Found Post)"
             accentColor="text-emerald-700"
             highlight
           />
         </div>
+
 
         {/* Actions */}
         {status === 'rejectConfirm' ? (

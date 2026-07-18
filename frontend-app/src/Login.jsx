@@ -69,9 +69,27 @@ export default function Login() {
       // Store JWT in localStorage for use on protected routes
       localStorage.setItem('authToken', data.access_token);
 
+      // Fetch user profile so Dashboard can show name/email and filter posts
+      try {
+        const meRes = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${data.access_token}` },
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          localStorage.setItem('authUser', JSON.stringify({
+            id: meData._id || meData.id,
+            name: meData.name,
+            email: meData.email,
+          }));
+        }
+      } catch {
+        // Non-fatal: Dashboard will degrade gracefully without user info
+      }
+
       // Redirect to dashboard (or wherever the user was trying to go)
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
+
     } catch {
       setError('Network error — is the backend running?');
     } finally {

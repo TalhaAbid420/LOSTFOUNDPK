@@ -15,10 +15,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Depends
 
 from core.security import hash_password, verify_password, create_access_token
+from core.dependencies import get_current_user
 from database import db_helper
 from models import UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
 
 
 # ---------------------------------------------------------------------------
@@ -109,3 +111,23 @@ async def login(
     # 3. Issue JWT
     token = create_access_token(subject=str(user_doc["_id"]))
     return TokenResponse(access_token=token)
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/me
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Return the currently authenticated user's profile",
+)
+async def get_me(current_user=Depends(get_current_user)) -> UserResponse:
+    """Fetch the profile of the user identified by the Bearer token."""
+    users = db_helper.db["users"]
+    from bson import ObjectId
+    doc = await users.find_one({"_id": ObjectId(str(current_user.id))})
+    if not doc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found.")
+    return UserResponse(**doc)

@@ -1,86 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-
-const ITEMS = [
-  {
-    id: 1,
-    title: 'Black Leather Wallet',
-    type: 'Lost',
-    category: 'Wallets',
-    categoryIcon: 'wallet',
-    city: 'Karachi',
-    location: 'DHA Phase 6, Karachi',
-    date: 'Oct 24, 2023',
-    daysAgo: 260,
-    description: "Black leather bifold wallet with a 'Levis' logo. Contains a CNIC and a few debit cards.",
-    image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=600&q=80',
-  },
-  {
-    id: 5,
-    title: 'iPhone 13 - Midnight Blue',
-    type: 'Found',
-    category: 'Electronics',
-    categoryIcon: 'phone_iphone',
-    city: 'Lahore',
-    location: 'Liberty Market, Lahore',
-    date: 'Yesterday',
-    daysAgo: 1,
-    description: 'Found in a rickshaw near Liberty Market. Phone is locked with a passcode.',
-    image: 'https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=600&q=80',
-  },
-  {
-    id: 4,
-    title: 'Golden Retriever Puppy',
-    type: 'Lost',
-    category: 'Pets',
-    categoryIcon: 'pets',
-    city: 'Islamabad',
-    location: 'Sector F-7, Islamabad',
-    date: 'Oct 24, 2023',
-    daysAgo: 260,
-    description: "Lost in Sector F-7 area. Responds to the name 'Max'. Has a blue collar.",
-    image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&q=80',
-  },
-  {
-    id: 2,
-    title: 'House Keys - Keychain',
-    type: 'Found',
-    category: 'Keys',
-    categoryIcon: 'vpn_key',
-    city: 'Karachi',
-    location: 'Dolmen Mall, Clifton',
-    date: 'Yesterday',
-    daysAgo: 1,
-    description: 'Set of three silver house keys on a colorful woven keychain, found near the main entrance.',
-    image: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=600&q=80',
-  },
-  {
-    id: 6,
-    title: 'Honda City Car Keys',
-    type: 'Lost',
-    category: 'Keys',
-    categoryIcon: 'vpn_key',
-    city: 'Rawalpindi',
-    location: 'Saddar, Rawalpindi',
-    date: '3 days ago',
-    daysAgo: 3,
-    description: 'Bunch of 3 keys with a Honda remote. Lost near the Saddar market area.',
-    image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=600&q=80',
-  },
-  {
-    id: 7,
-    title: 'CNIC - Muhammad Ali',
-    type: 'Found',
-    category: 'Documents',
-    categoryIcon: 'badge',
-    city: 'Lahore',
-    location: 'Liberty Market, Lahore',
-    date: '2 hours ago',
-    daysAgo: 0,
-    description: 'Pakistani CNIC card found near Liberty Market, handed to the information counter.',
-    image: 'https://images.unsplash.com/photo-1621504450181-5d356f61d307?w=600&q=80',
-  },
-];
+import { authFetch } from './api';
 
 const CATEGORIES = [
   { id: 'All', label: 'All Categories', icon: 'apps' },
@@ -146,25 +66,65 @@ export default function Browse() {
   const [dateRange, setDateRange] = useState('all');
   const [cityMenuOpen, setCityMenuOpen] = useState(false);
   const [dateMenuOpen, setDateMenuOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  // API state
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState('');
 
   const activeDateRange = DATE_RANGES.find((d) => d.id === dateRange);
 
-  const filteredItems = useMemo(() => {
-    return ITEMS.filter((item) => {
-      const matchesQuery =
-        query.trim() === '' ||
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.description.toLowerCase().includes(query.toLowerCase());
-      const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-      const matchesCity = city === 'All Cities' || item.city === city;
-      const matchesDate = item.daysAgo <= activeDateRange.maxDays;
-      return matchesQuery && matchesCategory && matchesCity && matchesDate;
-    });
-  }, [query, activeCategory, city, dateRange, activeDateRange]);
+  // Helper: map backend post to ItemCard shape
+  const toCard = (post) => {
+    const iconMap = { CNIC: 'badge', Wallet: 'account_balance_wallet', Phone: 'smartphone', Pet: 'pets', Other: 'more_horiz' };
+    return {
+      id: post._id,
+      type: post.type ? post.type.charAt(0).toUpperCase() + post.type.slice(1) : 'Unknown',
+      category: post.category,
+      categoryIcon: iconMap[post.category] || 'inventory_2',
+      city: post.city,
+      date: post.date ? new Date(post.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+      description: post.description,
+      image: post.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.category)}&background=E2E8F0&color=64748B&size=400`,
+    };
+  };
 
-  const visibleItems = filteredItems.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredItems.length;
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
+    setApiError('');
+    try {
+      const params = new URLSearchParams();
+      if (activeCategory !== 'All') params.append('category', activeCategory);
+      if (city !== 'All Cities') params.append('city', city);
+      if (query.trim()) params.append('keyword', query.trim());
+      params.append('limit', '200');
+
+      const data = await authFetch(`/posts/?${params.toString()}`);
+      let mapped = data.map(toCard);
+
+      // Client-side date filtering (backend doesn't support range yet)
+      if (activeDateRange.maxDays !== Infinity) {
+        const cutoff = Date.now() - activeDateRange.maxDays * 86400000;
+        mapped = mapped.filter((item) => new Date(item.date).getTime() >= cutoff);
+      }
+
+      setItems(mapped);
+    } catch (err) {
+      setApiError(err.message || 'Failed to load posts. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory, city, query, dateRange]);
+
+  // Debounce keyword search by 400ms to avoid flooding the API
+  useEffect(() => {
+    const id = setTimeout(fetchPosts, 400);
+    return () => clearTimeout(id);
+  }, [fetchPosts]);
+
+  const visibleItems = items.slice(0, visibleCount);
+  const hasMore = visibleCount < items.length;
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-20 md:pb-0">
@@ -285,7 +245,27 @@ export default function Browse() {
         </div>
 
         {/* Results grid */}
-        {visibleItems.length > 0 ? (
+        {apiError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 text-sm font-medium">
+            <span className="material-symbols-outlined">error</span>
+            {apiError}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden animate-pulse">
+                <div className="h-48 bg-surface-container-high" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-surface-container-high rounded w-3/4" />
+                  <div className="h-3 bg-surface-container-high rounded w-full" />
+                  <div className="h-3 bg-surface-container-high rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : visibleItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-8">
             {visibleItems.map((item) => (
               <ItemCard key={item.id} item={item} />
@@ -302,15 +282,15 @@ export default function Browse() {
         )}
 
         {/* Pagination / Load more */}
-        {filteredItems.length > 0 && (
+        {!loading && items.length > 0 && (
           <div className="flex flex-col items-center gap-4 py-8 border-t border-outline-variant">
             <p className="text-sm text-on-surface-variant">
-              Showing {visibleItems.length} of {filteredItems.length} reported items
+              Showing {visibleItems.length} of {items.length} reported items
             </p>
             {hasMore && (
               <button
                 type="button"
-                onClick={() => setVisibleCount((c) => c + 6)}
+                onClick={() => setVisibleCount((c) => c + 12)}
                 className="px-8 py-3 bg-surface-container-lowest border border-outline text-primary text-sm font-semibold rounded-lg hover:bg-surface-container transition-colors active:scale-95"
               >
                 Load More Items
@@ -318,6 +298,7 @@ export default function Browse() {
             )}
           </div>
         )}
+
       </main>
 
       {/* Footer */}
