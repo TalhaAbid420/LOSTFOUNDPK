@@ -88,6 +88,7 @@ export default function MatchReview() {
   const [matchRecord, setMatchRecord] = useState(null); // The match document
   const [yourPost, setYourPost] = useState(null);
   const [matchPost, setMatchPost] = useState(null);
+  const [otherUser, setOtherUser] = useState(null);
   const [status, setStatus] = useState('reviewing'); // reviewing | confirming | confirmed | rejectConfirm | rejected
 
   const mapPost = (post) => {
@@ -127,6 +128,7 @@ export default function MatchReview() {
         ]);
 
         // Decide which post is "yours" and which is the "matched" post
+        let otherUserId;
         if (id === activeMatch.lostPostId) {
           setYourPost(mapPost(lostDetails));
           setMatchPost({
@@ -137,6 +139,7 @@ export default function MatchReview() {
               trustLevel: 'High',
             },
           });
+          otherUserId = foundDetails.userId;
         } else {
           setYourPost(mapPost(foundDetails));
           setMatchPost({
@@ -147,6 +150,16 @@ export default function MatchReview() {
               trustLevel: 'High',
             },
           });
+          otherUserId = lostDetails.userId;
+        }
+
+        // Fetch the other user's public profile (name + email)
+        try {
+          const profile = await authFetch(`/auth/users/${otherUserId}`);
+          setOtherUser(profile);
+        } catch {
+          // Non-critical — we'll just show a fallback
+          setOtherUser({ name: 'User', email: '' });
         }
       } catch (err) {
         setError(err.message || 'Failed to load match details.');
@@ -239,10 +252,39 @@ export default function MatchReview() {
               <MaterialIcon name="celebration" className="text-4xl" filled />
             </div>
             <h2 className="text-2xl font-bold text-on-surface mb-2">Match Confirmed!</h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed mb-8">
-              Great news — {matchPost.finder?.name || 'the finder'} has been notified. A secure
-              conversation has been opened so you can safely arrange the handover.
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+              Great news — {otherUser?.name || 'the other user'} has been notified.
+              Reach out to arrange the handover:
             </p>
+
+            {/* Contact Info Card */}
+            <div className="bg-surface-container-low border border-outline-variant rounded-xl p-5 mb-8 text-left space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary">person</span>
+                <div>
+                  <p className="text-xs text-on-surface-variant">Name</p>
+                  <p className="text-sm font-semibold text-on-surface">{otherUser?.name || 'User'}</p>
+                </div>
+              </div>
+              {otherUser?.email && (
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">mail</span>
+                  <div>
+                    <p className="text-xs text-on-surface-variant">Email</p>
+                    <a
+                      href={`mailto:${otherUser.email}`}
+                      className="text-sm font-semibold text-primary hover:underline"
+                    >
+                      {otherUser.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-on-surface-variant pt-2 border-t border-outline-variant">
+                Contact them directly via email or WhatsApp to arrange a safe handover.
+              </p>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 to="/dashboard"

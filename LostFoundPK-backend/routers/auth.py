@@ -131,3 +131,35 @@ async def get_me(current_user=Depends(get_current_user)) -> UserResponse:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="User not found.")
     return UserResponse(**doc)
+
+
+# ---------------------------------------------------------------------------
+# GET /auth/users/{user_id}  – public profile (name + email only)
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel as _BaseModel
+
+class PublicUserProfile(_BaseModel):
+    name: str
+    email: str
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=PublicUserProfile,
+    summary="Return a user's public profile (name and email)",
+)
+async def get_user_profile(
+    user_id: str,
+    _current_user=Depends(get_current_user),
+) -> PublicUserProfile:
+    """Fetch the name and email of any user by their ID.
+
+    Requires authentication to prevent scraping, but only exposes
+    public information (name + email — never the password hash).
+    """
+    users = db_helper.db["users"]
+    doc = await users.find_one({"_id": ObjectId(user_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return PublicUserProfile(name=doc["name"], email=doc["email"])
