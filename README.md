@@ -169,4 +169,4 @@ npx playwright test
 
 ## License
 
-Built for a university hackathon project.
+Built for a DYLP hackathon project.
