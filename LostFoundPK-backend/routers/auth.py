@@ -144,7 +144,7 @@ from pydantic import BaseModel as _BaseModel
 class PublicUserProfile(_BaseModel):
     name: str
     email: str
-    phone: Optional[str] = None
+    phone: str
 
 
 @router.get(
@@ -165,4 +165,4 @@ async def get_user_profile(
     doc = await users.find_one({"_id": ObjectId(user_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="User not found.")
-    return PublicUserProfile(name=doc["name"], email=doc["email"], phone=doc.get("phone"))
+    return PublicUserProfile(name=doc["name"], email=doc["email"], phone=doc.get("phone", ""))

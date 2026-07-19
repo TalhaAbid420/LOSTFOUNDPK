@@ -32,8 +32,9 @@ class UserCreate(BaseModel):
         description="Plain-text password; will be hashed before storage.",
         examples=["S3cur3P@ss!"],
     )
-    phone: Optional[str] = Field(
-        None,
+    phone: str = Field(
+        ...,
+        min_length=10,
         max_length=20,
         description="WhatsApp or mobile number (e.g. 03001234567).",
         examples=["03001234567"],

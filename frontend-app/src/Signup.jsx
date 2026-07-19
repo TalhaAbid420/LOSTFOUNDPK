@@ -53,6 +53,11 @@ export default function Signup() {
     } else if (form.password.length < 8) {
       next.password = "Password must be at least 8 characters.";
     }
+    if (!form.phone.trim()) {
+      next.phone = "Phone number is required.";
+    } else if (!/^0[0-9]{10}$/.test(form.phone.trim())) {
+      next.phone = "Enter a valid Pakistani number (e.g. 03001234567).";
+    }
     if (!agreed) next.agreed = "Please accept the Terms to continue.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -72,7 +77,7 @@ export default function Signup() {
         body: JSON.stringify({
           name: form.fullName.trim(),
           email: form.email.trim(),
-          phone: form.phone.trim() || null,
+          phone: form.phone.trim(),
           password: form.password,
         }),
       });
@@ -233,7 +238,7 @@ export default function Signup() {
             {/* Phone (optional) */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-on-surface mb-1.5">
-                WhatsApp / Mobile Number <span className="text-on-surface-variant">(optional)</span>
+                WhatsApp / Mobile Number
               </label>
               <div className="relative">
                 <MaterialIcon
