@@ -280,8 +280,24 @@ export default function MatchReview() {
                   </div>
                 </div>
               )}
+              {otherUser?.phone && (
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">phone</span>
+                  <div>
+                    <p className="text-xs text-on-surface-variant">WhatsApp</p>
+                    <a
+                      href={`https://wa.me/${otherUser.phone.replace(/^0/, '92')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-[#25D366] hover:underline"
+                    >
+                      {otherUser.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-on-surface-variant pt-2 border-t border-outline-variant">
-                Contact them directly via email or WhatsApp to arrange a safe handover.
+                Contact them directly via WhatsApp or email to arrange a safe handover.
               </p>
             </div>
 

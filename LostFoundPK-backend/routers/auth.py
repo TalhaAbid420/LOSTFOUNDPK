@@ -8,6 +8,7 @@ Authentication endpoints:
 """
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, status
@@ -67,6 +68,7 @@ async def signup(payload: UserCreate) -> UserResponse:
         "name": payload.name,
         "email": payload.email,
         "passwordHash": hash_password(payload.password),
+        "phone": payload.phone,
         "createdAt": datetime.now(timezone.utc),
     }
 
@@ -142,6 +144,7 @@ from pydantic import BaseModel as _BaseModel
 class PublicUserProfile(_BaseModel):
     name: str
     email: str
+    phone: Optional[str] = None
 
 
 @router.get(
@@ -162,4 +165,4 @@ async def get_user_profile(
     doc = await users.find_one({"_id": ObjectId(user_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="User not found.")
-    return PublicUserProfile(name=doc["name"], email=doc["email"])
+    return PublicUserProfile(name=doc["name"], email=doc["email"], phone=doc.get("phone"))

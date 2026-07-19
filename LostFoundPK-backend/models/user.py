@@ -32,6 +32,12 @@ class UserCreate(BaseModel):
         description="Plain-text password; will be hashed before storage.",
         examples=["S3cur3P@ss!"],
     )
+    phone: Optional[str] = Field(
+        None,
+        max_length=20,
+        description="WhatsApp or mobile number (e.g. 03001234567).",
+        examples=["03001234567"],
+    )
 
     model_config = {"str_strip_whitespace": True}
 
@@ -42,6 +48,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=8)
+    phone: Optional[str] = Field(None, max_length=20)
 
     model_config = {"str_strip_whitespace": True}
 
@@ -57,6 +64,7 @@ class UserInDB(BaseModel):
     name: str
     email: EmailStr
     passwordHash: str
+    phone: Optional[str] = None
     createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = {
@@ -75,6 +83,7 @@ class UserResponse(BaseModel):
     id: Optional[PyObjectId] = Field(None, alias="_id")
     name: str
     email: EmailStr
+    phone: Optional[str] = None
     createdAt: datetime
 
     model_config = {

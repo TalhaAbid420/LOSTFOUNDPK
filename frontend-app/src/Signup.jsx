@@ -26,7 +26,7 @@ function getPasswordStrength(password) {
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ fullName: "", email: "", password: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState({});
@@ -72,6 +72,7 @@ export default function Signup() {
         body: JSON.stringify({
           name: form.fullName.trim(),
           email: form.email.trim(),
+          phone: form.phone.trim() || null,
           password: form.password,
         }),
       });
@@ -227,6 +228,33 @@ export default function Signup() {
                 />
               </div>
               {errors.email && <p className="mt-1.5 text-sm text-red-500">{errors.email}</p>}
+            </div>
+
+            {/* Phone (optional) */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-on-surface mb-1.5">
+                WhatsApp / Mobile Number <span className="text-on-surface-variant">(optional)</span>
+              </label>
+              <div className="relative">
+                <MaterialIcon
+                  name="phone"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]"
+                />
+                <input
+                  id="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={form.phone}
+                  onChange={handleChange("phone")}
+                  placeholder="e.g. 03001234567"
+                  className={`w-full pl-11 pr-4 py-3 rounded-xl bg-surface-container-lowest border text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#10B981]/40 transition-colors ${
+                    errors.phone
+                      ? "border-red-400 focus:border-red-400"
+                      : "border-outline-variant focus:border-[#10B981]"
+                  }`}
+                />
+              </div>
+              {errors.phone && <p className="mt-1.5 text-sm text-red-500">{errors.phone}</p>}
             </div>
 
             {/* Password */}
