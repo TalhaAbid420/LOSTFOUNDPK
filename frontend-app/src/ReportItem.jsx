@@ -129,16 +129,16 @@ export default function ReportItem() {
         ...(photoURL && { photoURL }),
       };
 
-      await authFetch('/posts/', {
+      const newPost = await authFetch('/posts/', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
       setSubmitStatus('success');
 
-      // Redirect to dashboard after a brief success flash
+      // Redirect to the new post's detail page so user can see possible matches
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/item/${newPost._id}`);
       }, 1500);
     } catch (err) {
       setSubmitStatus('idle');

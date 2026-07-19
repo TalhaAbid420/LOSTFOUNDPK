@@ -22,18 +22,26 @@ export default function ItemDetails() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
-  const [contactStatus, setContactStatus] = useState('idle');
+  const [reporterProfile, setReporterProfile] = useState(null);
   const [similarItems, setSimilarItems] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setNotFound(false);
       try {
+        // Get current user ID for ownership check
+        try {
+          const me = await authFetch('/auth/me');
+          setCurrentUserId(me.id || me._id);
+        } catch { /* not logged in */ }
+
         const data = await authFetch(`/posts/${id}`);
         const iconMap = ICON_MAP;
         setItem({
           id: data._id,
+          userId: data.userId,
           title: `${data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : ''} - ${data.category}`,
           type: data.type,
           category: data.category,
@@ -54,13 +62,22 @@ export default function ItemDetails() {
           },
         });
 
-        // Fetch similar items (same category, excluding current post)
+        // Fetch reporter's public profile (name, email, phone)
         try {
-          const params = new URLSearchParams({ category: data.category, limit: '4' });
+          const profile = await authFetch(`/auth/users/${data.userId}`);
+          setReporterProfile(profile);
+        } catch {
+          setReporterProfile({ name: 'Community Member', email: '', phone: '' });
+        }
+
+        // Fetch similar items — only opposite type (actual potential matches)
+        try {
+          const oppositeType = data.type === 'lost' ? 'found' : 'lost';
+          const params = new URLSearchParams({ type: oppositeType, category: data.category, limit: '10' });
           const allPosts = await authFetch(`/posts/?${params.toString()}`);
           const mapped = allPosts
             .filter((p) => p._id !== data._id)
-            .slice(0, 3)
+            .slice(0, 4)
             .map((p) => ({
               id: p._id,
               type: p.type,
@@ -111,11 +128,7 @@ export default function ItemDetails() {
 
   const isResolved = item.status === 'Resolved';
   const themeColor = item.type === 'found' ? '#10B981' : '#F59E0B';
-
-  const handleContact = () => {
-    setContactStatus('sending');
-    setTimeout(() => setContactStatus('sent'), 1200);
-  };
+  const isOwnPost = currentUserId && item.userId && String(currentUserId) === String(item.userId);
 
 
   return (
@@ -223,74 +236,88 @@ export default function ItemDetails() {
             </section>
           </div>
 
-          {/* Right: Reporter + actions */}
+          {/* Right: Reporter + contact info */}
           <div className="lg:col-span-2 space-y-6">
             <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 sticky top-24">
               <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-4">
-                {item.type === 'Found' ? 'Found By' : 'Reported By'}
+                {isOwnPost ? 'Your Report' : 'Reported By'}
               </h3>
               <div className="flex items-center gap-3 mb-5">
-                <img src={item.reporter.avatar} alt={item.reporter.name} className="w-14 h-14 rounded-full object-cover" />
+                <img src={item.reporter.avatar} alt={reporterProfile?.name || item.reporter.name} className="w-14 h-14 rounded-full object-cover" />
                 <div>
-                  <p className="text-base font-bold text-on-surface">{item.reporter.name}</p>
+                  <p className="text-base font-bold text-on-surface">{reporterProfile?.name || item.reporter.name}</p>
                   <p className="text-xs text-on-surface-variant">Member since {item.reporter.memberSince}</p>
                 </div>
               </div>
-              <div className="flex gap-2 mb-6">
-                <span className="px-3 py-1 bg-surface-container text-primary rounded-full text-xs font-semibold">
-                  {item.reporter.reportsMade} Reports
-                </span>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold">
-                  Trust: {item.reporter.trustLevel}
-                </span>
-              </div>
 
-              {isResolved ? (
-                <button type="button" disabled className="w-full h-12 bg-surface-container-high text-on-surface-variant rounded-xl font-semibold cursor-not-allowed">
+              {!isOwnPost && reporterProfile && (
+                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 space-y-3 mb-4">
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Contact Info</p>
+                  {reporterProfile.phone && (
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[18px] text-primary">phone</span>
+                      <div>
+                        <p className="text-xs text-on-surface-variant">WhatsApp</p>
+                        <a
+                          href={`https://wa.me/${reporterProfile.phone.replace(/^0/, '92')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-semibold text-[#25D366] hover:underline"
+                        >
+                          {reporterProfile.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {reporterProfile.email && (
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[18px] text-primary">mail</span>
+                      <div>
+                        <p className="text-xs text-on-surface-variant">Email</p>
+                        <a
+                          href={`mailto:${reporterProfile.email}`}
+                          className="text-sm font-semibold text-primary hover:underline"
+                        >
+                          {reporterProfile.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-on-surface-variant pt-2 border-t border-outline-variant">
+                    Contact them directly to arrange a safe handover.
+                  </p>
+                </div>
+              )}
+
+              {isOwnPost && (
+                <div className="flex gap-2 mb-2">
+                  <span className="px-3 py-1 bg-surface-container text-primary rounded-full text-xs font-semibold">
+                    {item.reporter.reportsMade} Reports
+                  </span>
+                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold">
+                    Trust: {item.reporter.trustLevel}
+                  </span>
+                </div>
+              )}
+
+              {isResolved && (
+                <button type="button" disabled className="w-full h-12 bg-surface-container-high text-on-surface-variant rounded-xl font-semibold cursor-not-allowed mt-2">
                   Report Closed
                 </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleContact}
-                    disabled={contactStatus !== 'idle'}
-                    className="w-full h-12 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70"
-                    style={{ backgroundColor: contactStatus === 'sent' ? '#003a26' : themeColor }}
-                  >
-                    {contactStatus === 'idle' && (
-                      <>
-                        <span className="material-symbols-outlined">chat</span>
-                        {item.type === 'Found' ? 'This Is Mine' : 'I Found This'}
-                      </>
-                    )}
-                    {contactStatus === 'sending' && (
-                      <>
-                        <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                        Connecting…
-                      </>
-                    )}
-                    {contactStatus === 'sent' && (
-                      <>
-                        <span className="material-symbols-outlined">done_all</span>
-                        Request Sent
-                      </>
-                    )}
-                  </button>
-                  <button type="button" className="w-full h-12 mt-3 border border-outline-variant rounded-xl font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">flag</span>
-                    Report Inappropriate
-                  </button>
-                </>
               )}
             </section>
           </div>
         </div>
 
-        {/* Similar items */}
+        {/* Possible Matches — opposite type */}
         {similarItems.length > 0 && (
           <section className="mt-12">
-            <h3 className="text-xl font-bold text-on-surface mb-5">Similar Reports</h3>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Possible Matches</h3>
+            <p className="text-sm text-on-surface-variant mb-5">
+              {item.type === 'lost'
+                ? 'People who found similar items:'
+                : 'People who lost similar items:'}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {similarItems.map((sim) => (
                 <Link
