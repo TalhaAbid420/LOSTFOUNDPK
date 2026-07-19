@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "LostFoundPK API"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: List[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: List[str] = ["*"]
     MONGO_URI: str = Field(validation_alias=AliasChoices("MONGO_URI", "MONGODB_URI", "mongodb_uri", "MONGO_URL", "mongodb_url"))
     MONGO_DB_NAME: str = "lostfound"
     SENDGRID_API_KEY: str = Field("", description="SendGrid API key for email notifications")
