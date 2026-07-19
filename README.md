@@ -10,7 +10,7 @@ A full-stack web application for reporting and reuniting lost and found items ac
 |------|------|
 | **Talha Abid** | Backend Development, API Design, Database, Matching Algorithm |
 | **Hadeeba Javed** | Frontend Development, UI/UX Design, Team Lead |
-| **Sunas Bibi** | Deployment, Testing & QA |
+| **Sundas Bibi** | Deployment, Testing & QA |
 | **Arfa Amreen Rabia** | Presentation & Demo Video |
 
 ## Features
