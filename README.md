@@ -4,6 +4,15 @@ A full-stack web application for reporting and reuniting lost and found items ac
 
 **Live:** [https://lostfoundpk.vercel.app](https://lostfoundpk.vercel.app)
 
+## Team
+
+| Name | Role |
+|------|------|
+| **Talha Abid** | Backend Development, API Design, Database, Matching Algorithm |
+| **Hadeeba Javed** | Frontend Development, UI/UX Design, Team Lead |
+| **Sunas Bibi** | Deployment, Testing & QA |
+| **Arfa Amreen Rabia** | Presentation & Demo Video |
+
 ## Features
 
 - **Report Lost/Found Items** — Submit detailed reports with photos, categories, cities, and dates
@@ -160,4 +169,4 @@ npx playwright test
 
 ## License
 
-This project was built as a academic project.
+Built for a university hackathon project.
