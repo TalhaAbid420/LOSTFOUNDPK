@@ -39,6 +39,12 @@ function ItemCard({ item }) {
       <div className="relative h-48">
         <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         <TypeBadge type={item.type} />
+        {item.hasMatch && (
+          <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md backdrop-blur-sm">
+            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            Possible Match
+          </div>
+        )}
         <div className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-lg shadow-sm border border-outline-variant">
           <span className="material-symbols-outlined text-primary text-[20px]">{item.categoryIcon}</span>
         </div>
@@ -70,13 +76,14 @@ export default function Browse() {
 
   // API state
   const [items, setItems] = useState([]);
+  const [matchedIds, setMatchedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState('');
 
   const activeDateRange = DATE_RANGES.find((d) => d.id === dateRange);
 
   // Helper: map backend post to ItemCard shape
-  const toCard = (post) => {
+  const toCard = (post, matchSet) => {
     const iconMap = { CNIC: 'badge', Wallet: 'account_balance_wallet', Phone: 'smartphone', Pet: 'pets', Other: 'more_horiz' };
     return {
       id: post._id,
@@ -87,6 +94,7 @@ export default function Browse() {
       date: post.date ? new Date(post.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
       description: post.description,
       image: post.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.category)}&background=E2E8F0&color=64748B&size=400`,
+      hasMatch: matchSet.has(post._id),
     };
   };
 
@@ -100,8 +108,15 @@ export default function Browse() {
       if (query.trim()) params.append('keyword', query.trim());
       params.append('limit', '200');
 
-      const data = await authFetch(`/posts/?${params.toString()}`);
-      let mapped = data.map(toCard);
+      const [data, summary] = await Promise.all([
+        authFetch(`/posts/?${params.toString()}`),
+        authFetch('/matches/summary').catch(() => ({ postIds: [] })),
+      ]);
+
+      const matchSet = new Set(summary.postIds || []);
+      setMatchedIds(matchSet);
+
+      let mapped = data.map((post) => toCard(post, matchSet));
 
       // Client-side date filtering (backend doesn't support range yet)
       if (activeDateRange.maxDays !== Infinity) {

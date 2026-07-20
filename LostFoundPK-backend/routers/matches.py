@@ -1,6 +1,7 @@
 # routers/matches.py
 """Router for match-related endpoints.
 Provides:
+- GET /matches/summary: match counts for all posts (badge display).
 - GET /matches/{post_id}: retrieve matches for a given post.
 - PATCH /matches/{match_id}/confirm: update match status (e.g., confirm).
 """
@@ -13,6 +14,38 @@ from database import db_helper
 from models import MatchResponse, MatchUpdate
 
 router = APIRouter(prefix="/matches", tags=["Matches"])
+
+# ---------------------------------------------------------------------------
+# GET /matches/summary – lightweight dict of postId → pending match count
+# ---------------------------------------------------------------------------
+@router.get(
+    "/summary",
+    summary="Return pending match counts for all posts",
+)
+async def match_summary(current_user=Depends(get_current_user)):
+    """Aggregates the matches collection and returns a dict mapping
+    each postId (as string) to its number of pending matches.
+
+    The frontend uses this to show a badge on item cards that have
+    potential matches.
+    """
+    pipeline = [
+        {"$match": {"status": "pending"}},
+        {"$group": {
+            "_id": None,
+            "lostIds": {"$addToSet": {"$toString": "$lostPostId"}},
+            "foundIds": {"$addToSet": {"$toString": "$foundPostId"}},
+        }},
+    ]
+    cursor = db_helper.db["matches"].aggregate(pipeline)
+    docs = await cursor.to_list(length=1)
+
+    post_ids = set()
+    for doc in docs:
+        post_ids.update(doc.get("lostIds", []))
+        post_ids.update(doc.get("foundIds", []))
+
+    return {"postIds": list(post_ids)}
 
 # ---------------------------------------------------------------------------
 # GET /matches/{post_id}
