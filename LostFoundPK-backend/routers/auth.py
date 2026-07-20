@@ -5,6 +5,7 @@ Authentication endpoints:
 
   POST /auth/signup  – register a new user
   POST /auth/login   – verify credentials and return a JWT access token
+  DELETE /auth/me    – delete account, posts, and matches
 """
 
 from datetime import datetime, timezone
@@ -166,3 +167,37 @@ async def get_user_profile(
     if not doc:
         raise HTTPException(status_code=404, detail="User not found.")
     return PublicUserProfile(name=doc["name"], email=doc["email"], phone=doc.get("phone", ""))
+
+
+# ---------------------------------------------------------------------------
+# DELETE /auth/me  – delete account and all related data
+# ---------------------------------------------------------------------------
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete account, all posts, and all matches",
+)
+async def delete_me(current_user=Depends(get_current_user)) -> None:
+    """Permanently remove the authenticated user and all associated data.
+
+    - Deletes all posts owned by the user.
+    - Deletes all matches where the user is either party.
+    - Deletes the user document itself.
+    """
+    user_id = ObjectId(str(current_user.id))
+    db = db_helper.db
+
+    # 1. Delete all posts by this user
+    await db["posts"].delete_many({"userId": str(user_id)})
+
+    # 2. Delete all matches involving this user
+    await db["matches"].delete_many({
+        "$or": [
+            {"user1Id": str(user_id)},
+            {"user2Id": str(user_id)},
+        ]
+    })
+
+    # 3. Delete the user document
+    await db["users"].delete_one({"_id": user_id})

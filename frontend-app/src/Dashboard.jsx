@@ -218,6 +218,17 @@ export default function Dashboard() {
     navigate('/login');
   };
 
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This will permanently remove all your reports, matches, and profile data. This cannot be undone.')) return;
+    try {
+      await authFetch('/auth/me', { method: 'DELETE' });
+      removeAuth();
+      navigate('/login');
+    } catch (err) {
+      alert(err.message || 'Could not delete account.');
+    }
+  };
+
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col font-sans">
       {/* Header */}
@@ -272,6 +283,14 @@ export default function Dashboard() {
                   <span className="material-symbols-outlined text-[18px]">search</span>
                   Browse Posts
                 </Link>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  className="px-5 py-2 border border-red-300 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                  Delete Account
+                </button>
               </div>
             </div>
           </div>
