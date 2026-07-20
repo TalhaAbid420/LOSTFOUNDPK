@@ -72,6 +72,7 @@ async def list_posts(
     city: Optional[str] = Query(None),
     date: Optional[str] = Query(None),  # ISO‑8601 date string (YYYY‑MM‑DD)
     keyword: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ) -> List[PostResponse]:
@@ -90,6 +91,8 @@ async def list_posts(
             raise HTTPException(status_code=400, detail="Invalid date format – use YYYY‑MM‑DD")
     if keyword:
         query["description"] = {"$regex": keyword, "$options": "i"}
+    if status:
+        query["status"] = status
 
     cursor = db_helper.db["posts"].find(query).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)

@@ -39,32 +39,6 @@ const VALUES = [
   },
 ];
 
-const STORY_STEPS = [
-  {
-    year: '2023',
-    title: 'The Idea',
-    description:
-      'Born from a simple frustration — losing a wallet in Karachi with no reliable way to find it. We asked: what if there was one trusted place for the whole country?',
-  },
-  {
-    year: '2023',
-    title: 'First 1,000 Reports',
-    description:
-      'We launched quietly in three cities. Within weeks, word of mouth carried LostFoundPK to campuses, offices, and family group chats nationwide.',
-  },
-  {
-    year: '2024',
-    title: 'Going Nationwide',
-    description:
-      'Coverage expanded to every major city in Pakistan, with dedicated categories for documents, electronics, pets, and more.',
-  },
-  {
-    year: 'Today',
-    title: 'Thousands Reunited',
-    description:
-      'From CNICs to family pets, we have helped thousands of Pakistanis get back what matters most — and we are just getting started.',
-  },
-];
 
 const TEAM = [
   { name: 'Hadeeba Javed', role: 'Founder & Lead Developer', avatar: 'https://ui-avatars.com/api/?name=Hadeeba+Javed&background=003747&color=fff&size=200' },
@@ -211,31 +185,6 @@ export default function About() {
                   <p className="text-sm text-on-surface-variant leading-relaxed">{value.description}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Timeline */}
-        <section className="px-4 sm:px-8 py-16 lg:py-20">
-          <div className="max-w-container-max mx-auto">
-            <div className="text-center max-w-2xl mx-auto mb-14">
-              <p className="text-xs font-semibold uppercase text-primary tracking-widest mb-3">Our Journey</p>
-              <h2 className="text-3xl lg:text-4xl font-bold text-primary tracking-tight">From idea to nationwide network</h2>
-            </div>
-            <div className="max-w-2xl mx-auto relative">
-              <div className="absolute left-[19px] top-2 bottom-2 w-px bg-outline-variant" />
-              <div className="space-y-10">
-                {STORY_STEPS.map((step) => (
-                  <div key={step.title} className="relative pl-14">
-                    <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                      {step.year.slice(0, 2)}
-                    </div>
-                    <p className="text-xs font-bold text-primary/60 tracking-widest mb-1">{step.year.toUpperCase()}</p>
-                    <h3 className="text-lg font-semibold text-on-surface mb-1.5">{step.title}</h3>
-                    <p className="text-sm text-on-surface-variant leading-relaxed">{step.description}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </section>

@@ -106,6 +106,7 @@ export default function Browse() {
       if (activeCategory !== 'All') params.append('category', activeCategory);
       if (city !== 'All Cities') params.append('city', city);
       if (query.trim()) params.append('keyword', query.trim());
+      params.append('status', 'open');
       params.append('limit', '200');
 
       const [data, summary] = await Promise.all([
@@ -158,7 +159,7 @@ export default function Browse() {
             <Link to="/report" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Report</Link>
             <Link to="/" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About</Link>
           </nav>
-          <button className="material-symbols-outlined text-on-surface-variant p-2" aria-label="Account">account_circle</button>
+          <Link to="/dashboard" className="material-symbols-outlined text-on-surface-variant p-2" aria-label="Account">account_circle</Link>
         </div>
       </header>
 

@@ -148,7 +148,7 @@ export default function ItemDetails() {
             <Link to="/report" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Report</Link>
             <Link to="/" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About</Link>
           </nav>
-          <button className="material-symbols-outlined text-primary p-2" aria-label="Account">account_circle</button>
+          <Link to="/dashboard" className="material-symbols-outlined text-primary p-2" aria-label="Account">account_circle</Link>
         </div>
       </header>
 
