@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
+import { authFetch } from "./api";
 
 const RECENT_REPORTS = [
   {
@@ -174,6 +175,7 @@ export default function Home() {
   const [headerElevated, setHeaderElevated] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [heroQuery, setHeroQuery] = useState("");
+  const [recentReports, setRecentReports] = useState(RECENT_REPORTS);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -190,6 +192,36 @@ export default function Home() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch real posts and merge with demo data to always show 3
+  useEffect(() => {
+    async function loadRecent() {
+      try {
+        const posts = await authFetch("/posts/?limit=3");
+        if (posts && posts.length > 0) {
+          const iconMap = { CNIC: "badge", Wallet: "account_balance_wallet", Phone: "smartphone", Pet: "pets", Other: "more_horiz" };
+          const mapped = posts.map((p) => ({
+            id: p._id,
+            type: p.type,
+            title: `${p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : ""} ${p.category}`,
+            icon: iconMap[p.category] || "inventory_2",
+            location: p.city,
+            date: p.date ? new Date(p.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
+            action: p.type === "found" ? "Claim Item" : "I Found This",
+            image: p.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.category)}&background=E2E8F0&color=64748B&size=400`,
+            alt: p.description,
+            isReal: true,
+          }));
+          // Pad with demo reports to always show 3
+          const remaining = RECENT_REPORTS.slice(0, Math.max(0, 3 - mapped.length));
+          setRecentReports([...mapped, ...remaining]);
+        }
+      } catch {
+        // Keep demo reports on error
+      }
+    }
+    loadRecent();
   }, []);
 
   const handleSignOut = () => {
@@ -440,17 +472,17 @@ export default function Home() {
                   Latest lost and found items posted across Pakistan — updated in real time.
                 </p>
               </div>
-              <button
-                type="button"
+              <Link
+                to="/browse"
                 className="inline-flex items-center gap-1.5 self-start sm:self-auto px-5 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-label-md font-medium text-primary hover:border-primary hover:bg-primary/5 transition-colors"
               >
                 View all reports
                 <MaterialIcon name="arrow_forward" className="text-lg" />
-              </button>
+              </Link>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {RECENT_REPORTS.map((report) => (
+              {recentReports.map((report) => (
                 <ReportCard key={report.id} report={report} />
               ))}
             </div>
