@@ -182,7 +182,7 @@ export default function Browse() {
 
         {/* Filter bar */}
         <div className="sticky top-16 z-40 bg-surface/95 backdrop-blur-md py-4 -mx-4 sm:-mx-8 px-4 sm:px-8 mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex items-center gap-2 flex-wrap">
             {/* City filter */}
             <div className="relative shrink-0">
               <button
